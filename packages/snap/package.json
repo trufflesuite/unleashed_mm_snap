@@ -27,8 +27,8 @@
     "start": "mm-snap watch"
   },
   "dependencies": {
-    "@metamask/abi-utils": "^1.0.0",
-    "@metamask/utils": "^3.2.0"
+    "@metamask/abi-utils": "^1.1.0",
+    "@metamask/utils": "^3.3.1"
   },
   "devDependencies": {
     "@lavamoat/allow-scripts": "^2.0.3",
