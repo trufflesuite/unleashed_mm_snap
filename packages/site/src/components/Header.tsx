@@ -63,7 +63,7 @@ export const Header = ({
     <HeaderWrapper>
       <LogoWrapper>
         <SnapLogo color={theme.colors.icon.default} size={36} />
-        <Title>ABI Decoder Snap</Title>
+        <Title>NFT Vault Dapp</Title>
       </LogoWrapper>
       <RightContainer>
         <Toggle

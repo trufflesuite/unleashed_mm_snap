@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import styled from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
 import {
@@ -16,6 +16,7 @@ import {
   SendContractTransactionButton,
   Card,
 } from '../components';
+import Web3EthAbi from 'web3-eth-abi'; 
 
 const Container = styled.div`
   display: flex;
@@ -103,6 +104,8 @@ const ErrorMessage = styled.div`
 
 const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
+  const [simpleNFTContractAddress, setSimpleNFTContractAddress] = useState(); 
+  const [NFTVaultContractAddress, setNFTVaultContractAddress] = useState(); 
 
   const handleConnectClick = async () => {
     try {
@@ -118,16 +121,6 @@ const Index = () => {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
-/*
-  const handleSendHelloClick = async () => {
-    try {
-      await sendHello();
-    } catch (e) {
-      console.error(e);
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    }
-  };
-*/
 
   const handleSetNetworkToGanacheClick = async () => {
     try {
@@ -140,6 +133,39 @@ const Index = () => {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
+
+  const saveContractAddresses = async (e:Event) => { 
+    e.preventDefault(); 
+    const data = new FormData(e.target); 
+    const simpleNFTaddress = data.get("simpleNFTaddress"); 
+    const NFTvaultaddress = data.get("NFTvaultaddress"); 
+    setSimpleNFTContractAddress(simpleNFTaddress); 
+    setNFTVaultContractAddress(NFTvaultaddress); 
+    alert("Set addresses to: "+simpleNFTaddress+" and "+NFTvaultaddress); 
+  }; 
+
+  const mintNFTHandler = async (e:Event) => { 
+    e.preventDefault();
+    const data = new FormData(e.target);  
+    const tokenURI = ""+data.get("mintNFTtokenURI"); 
+    const encodedData = Web3EthAbi.encodeFunctionCall({
+      name: 'mint', 
+      type: 'function', 
+      inputs: [{
+        type: 'string', 
+        name: '_tokenURI'
+      }]
+    }, [tokenURI]); 
+    try { 
+      await sendContractTransaction(
+        simpleNFTContractAddress, 
+        encodedData,
+      ); 
+    } catch (e) {
+      console.error(e);
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  }; 
 
   const handleSendGoodContractTransactionClick = async () => {
     try {
@@ -168,7 +194,7 @@ const Index = () => {
   return (
     <Container>
       <Heading>
-        Welcome to <Span>ABI Decoder Snap</Span>
+        Welcome to <Span>NFT Vault Dapp</Span>
       </Heading>
       <Subtitle>
         Get started by editing <code>src/index.ts</code>
@@ -237,36 +263,35 @@ const Index = () => {
           disabled={false}
           fullWidth={false}
         />
-        <Card
+        <Card 
           content={{
-            title: 'Send Good Contract Transaction',
-            description:
-              'Create a good pending contract transaction in MetaMask.',
-            button: (
-              <SendContractTransactionButton
-                onClick={handleSendGoodContractTransactionClick}
-                disabled={false}
-              />
-            ),
+            title: 'Set Contract Addresses', 
+            description: (
+              <form id="setAddresses" onSubmit={saveContractAddresses}>
+                <p><label>SimpleNFT.sol address:</label></p>
+                <p><input type="text" name="simpleNFTaddress" /></p>
+                <p><label>NFTVault.sol address:</label></p>
+                <p><input type="text" name="NFTvaultaddress" /></p>
+                <button type="submit">Save</button>
+              </form>
+            ), 
           }}
-          disabled={false}
-          fullWidth={false}
         />
-        <Card
-          content={{
-            title: 'Send Bad Contract Transaction',
-            description:
-              'Create a bad pending contract transaction in MetaMask.',
-            button: (
-              <SendContractTransactionButton
-                onClick={handleSendBadContractTransactionClick}
-                disabled={false}
-              />
-            ),
-          }}
-          disabled={false}
-          fullWidth={false}
-        />
+        {simpleNFTContractAddress && ( 
+          <Card
+            content={{
+              title: 'Mint an NFT',
+              description: (
+                <form id="mintNFT" onSubmit={mintNFTHandler}>
+                  <p><input type="text" name="mintNFTtokenURI" id="mintNFTtokenURI" /></p>
+                  <button type="submit">Mint</button>
+                </form>
+              ), 
+            }}
+            disabled={false}
+            fullWidth={false}
+          />
+        )}
         <Notice>
           <p>
             Please note that the <b>snap.manifest.json</b> and{' '}
