@@ -4,7 +4,7 @@ This project starts from the [4byte API snap](https://github.com/Montoya/tx-insi
 
 1. In `packages/site/src/components/Card.tsx`, change line 7 to `description: string | ReactNode;`. This will allow for using HTML in card descriptions. 
 2. In the same file, change line 8 to `button?: ReactNode;`. This will make the button prop optional. 
-3. In the same file, change line 43 to `const Description = styled.div`. This will make it possible to put any kind of HTMl inside of description. 
+3. In the same file, change line 43 to `const Description = styled.div`. This will make it possible to put any kind of HTML inside of description. 
 4. In `packages/site/src/pages/index.tsx`, delete the last two cards. 
 5. Now add a card and function to store the addresses of the two smart contracts `SimpleNFT.sol` and `NFTVault.sol`. 
     1. Update the first import to include `useState` from `React`. 
@@ -63,6 +63,7 @@ This project starts from the [4byte API snap](https://github.com/Montoya/tx-insi
     )}
     ```
       By wrapping it in this conditional render, it will only appear when `simpleNFTContractAddress` has been set!
+    
     2. We are going to need a way to encode the method and parameters when calling these functions, so stop the packages and add the `web3-eth-abi` package to this project in `packages/site`: `yarn add web3-eth-abi`, then import it into this file: `import Web3EthAbi from 'web3-eth-abi';`. 
     3. Unfortunately this introduces an issue with a missing polyfill, so we have to take a detour and resolve it. Run `yarn add --dev react-app-rewired process crypto-browserify stream-browserify assert stream-http https-browserify os-browserify url buffer` and then add a file `gatsby-node.js` with the following: 
     ```
@@ -90,6 +91,7 @@ This project starts from the [4byte API snap](https://github.com/Montoya/tx-insi
     };
     ```
     Go back up to the main directory and start the packages again with `yarn start`. 
+    
     4. Now add the following function: 
     ```
     const mintNFTHandler = async (e:Event) => { 
