@@ -32,6 +32,12 @@ module.exports = {
     },
   ],
 
+  rules: {
+    "node/no-unpublished-require": ["error", {
+      "allowModules": ["buffer","crypto-browserify","stream-browserify","stream-http","https-browserify","os-browserify"]
+    }]
+  },
+
   ignorePatterns: [
     '!.prettierrc.js',
     '**/!.eslintrc.js',

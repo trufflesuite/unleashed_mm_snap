@@ -167,6 +167,118 @@ const Index = () => {
     }
   }; 
 
+  const approveVaultHandler = async (e:Event) => {
+    e.preventDefault();
+    const data = new FormData(e.target);  
+    const address = ""+data.get("contractAddressToApprove"); 
+    const tokenId = parseInt(data.get("tokenIdToApprove")); 
+    const encodedData = Web3EthAbi.encodeFunctionCall({
+      name: 'approve', 
+      type: 'function', 
+      inputs: [{
+        type: 'address', 
+        name: 'to'
+      },{
+        type: 'uint256',
+        name: 'tokenId'
+      }]
+    }, [NFTVaultContractAddress, tokenId]); 
+    try { 
+      await sendContractTransaction(
+        address, 
+        encodedData,
+      ); 
+    } catch (e) {
+      console.error(e);
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  }; 
+
+  const depositToVaultHandler = async (e:Event) => {
+    e.preventDefault();
+    const data = new FormData(e.target);  
+    const nftAddress = ""+data.get("nftAddressToDeposit"); 
+    const tokenId = parseInt(data.get("nftTokenIdToDeposit")); 
+    const secondSigner = ""+data.get("secondSigner"); 
+    const encodedData = Web3EthAbi.encodeFunctionCall({
+      name: 'depositNFT', 
+      type: 'function', 
+      inputs: [{
+        type: 'address', 
+        name: 'nftContract'
+      },{
+        type: 'uint256',
+        name: 'tokenId'
+      },{
+        type: 'address', 
+        name: 'secondSigner'
+      }]
+    }, [nftAddress, tokenId, secondSigner]); 
+    try { 
+      await sendContractTransaction(
+        NFTVaultContractAddress, 
+        encodedData,
+      ); 
+    } catch (e) {
+      console.error(e);
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  }; 
+
+  const approveWithdrawHandler = async (e:Event) => {
+    e.preventDefault();
+    const data = new FormData(e.target);  
+    const nftAddress = ""+data.get("nftAddressToApprove"); 
+    const tokenId = parseInt(data.get("nftTokenIdToApprove")); 
+    const encodedData = Web3EthAbi.encodeFunctionCall({
+      name: 'approveWithdraw', 
+      type: 'function', 
+      inputs: [{
+        type: 'address', 
+        name: 'nftContract'
+      },{
+        type: 'uint256',
+        name: 'tokenId'
+      }]
+    }, [nftAddress, tokenId]); 
+    try { 
+      await sendContractTransaction(
+        NFTVaultContractAddress, 
+        encodedData,
+      ); 
+    } catch (e) {
+      console.error(e);
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  }; 
+
+  const withdrawHandler = async (e:Event) => {
+    e.preventDefault();
+    const data = new FormData(e.target);  
+    const nftAddress = ""+data.get("nftAddressToWithdraw"); 
+    const tokenId = parseInt(data.get("nftTokenIdToWithdraw")); 
+    const encodedData = Web3EthAbi.encodeFunctionCall({
+      name: 'withdrawNFT', 
+      type: 'function', 
+      inputs: [{
+        type: 'address', 
+        name: 'nftContract'
+      },{
+        type: 'uint256',
+        name: 'tokenId'
+      }]
+    }, [nftAddress, tokenId]); 
+    try { 
+      await sendContractTransaction(
+        NFTVaultContractAddress, 
+        encodedData,
+      ); 
+    } catch (e) {
+      console.error(e);
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  }; 
+
   const handleSendGoodContractTransactionClick = async () => {
     try {
       await sendContractTransaction(
@@ -283,8 +395,86 @@ const Index = () => {
               title: 'Mint an NFT',
               description: (
                 <form id="mintNFT" onSubmit={mintNFTHandler}>
+                  <p><label>TokenURI:</label></p>
                   <p><input type="text" name="mintNFTtokenURI" id="mintNFTtokenURI" /></p>
                   <button type="submit">Mint</button>
+                </form>
+              ), 
+            }}
+            disabled={false}
+            fullWidth={false}
+          />
+        )}
+        {NFTVaultContractAddress && (
+          <Card
+            content={{
+              title: 'Approve the NFT Vault to hold your NFT',
+              description: (
+                <form id="approveVault" onSubmit={approveVaultHandler}>
+                  <p><label>NFT Contract Address:</label></p>
+                  <p><input type="text" name="contractAddressToApprove" id="contractAddressToApprove" /></p>
+                  <p><label>NFT token ID:</label></p>
+                  <p><input type="text" name="tokenIdToApprove" id="tokenIdToApprove" /></p>
+                  <button type="submit">Approve</button>
+                </form>
+              ), 
+            }}
+            disabled={false}
+            fullWidth={false}
+          />
+        )}
+        {NFTVaultContractAddress && (
+          <Card
+            content={{
+              title: 'Deposit an NFT into the vault',
+              description: (
+                <form id="depositToVault" onSubmit={depositToVaultHandler}>
+                  <p><em>Make sure you have approved the vault to hold this NFT!</em></p>
+                  <p><label>NFT Contract Address:</label></p>
+                  <p><input type="text" name="nftAddressToDeposit" id="nftAddressToDeposit" /></p>
+                  <p><label>NFT token ID:</label></p>
+                  <p><input type="text" name="nftTokenIdToDeposit" id="nftTokenIdToDeposit" /></p>
+                  <p><label>Second signer for withdraw approval:</label></p>
+                  <p><input type="text" name="secondSigner" id="secondSigner" /></p>
+                  <button type="submit">Deposit</button>
+                </form>
+              ), 
+            }}
+            disabled={false}
+            fullWidth={false}
+          />
+        )}
+        {NFTVaultContractAddress && (
+          <Card
+            content={{
+              title: 'Approve an NFT to be withdrawn',
+              description: (
+                <form id="approveWithdraw" onSubmit={approveWithdrawHandler}>
+                  <p><em>Make sure you are calling this from the second signer!</em></p>
+                  <p><label>NFT Contract Address:</label></p>
+                  <p><input type="text" name="nftAddressToApprove" id="nftAddressToApprove" /></p>
+                  <p><label>NFT token ID:</label></p>
+                  <p><input type="text" name="nftTokenIdToApprove" id="nftTokenIdToApprove" /></p>
+                  <button type="submit">Approve Withdrawal</button>
+                </form>
+              ), 
+            }}
+            disabled={false}
+            fullWidth={false}
+          />
+        )}
+        {NFTVaultContractAddress && (
+          <Card
+            content={{
+              title: 'Withdraw NFT',
+              description: (
+                <form id="withdraw" onSubmit={withdrawHandler}>
+                  <p><em>Make sure the second signer has already approved this!</em></p>
+                  <p><label>NFT Contract Address:</label></p>
+                  <p><input type="text" name="nftAddressToWithdraw" id="nftAddressToWithdraw" /></p>
+                  <p><label>NFT token ID:</label></p>
+                  <p><input type="text" name="nftTokenIdToWithdraw" id="nftTokenIdToWithdraw" /></p>
+                  <button type="submit">Withdraw</button>
                 </form>
               ), 
             }}
