@@ -342,4 +342,37 @@ This project starts from the [4byte API snap](https://github.com/Montoya/tx-insi
 
 Now the dapp is fully functioning. Next, build a snap that can decode these transactions and use the same smart contracts to provide some meaningful information: 
 
-1. 
+1. Navigate to the `packages/snap` folder and add the web3 library with `yarn add web3`. 
+2. In `src/insights.ts`, import web3 and use it to connect to localhost inside of the `getInsights` function: `const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8545'));`.
+3. View the hex data in MetaMask for each of the write methods and get the first 8 characters. This is the function signature. You should have: 
+    * approveWithdraw: 4e1ca120
+    * depositNFT: 97be5523
+    * removeApproval: b537b269
+    * withdrawNFT: 6088e93a
+4. Update the snap so that when the contract address matches the NFT Vault contract, these functions are manually identified (in this example, the NFT Vault is at `0xb34A61E62b5E8F757cecb5a2f6BfB286c5471606`): 
+```
+let matchingFunctions:Array<String> = []; 
+
+if(transaction.to == "0xb34A61E62b5E8F757cecb5a2f6BfB286c5471606") { 
+  switch(functionSignature) { 
+    case "4e1ca120": 
+      matchingFunctions = ["approveWithdraw(address,uint256)"]; 
+      break; 
+    case "97be5523": 
+      matchingFunctions = ["depositNFT(address,uint256,address)"]; 
+      break; 
+    case "b537b269": 
+      matchingFunctions = ["removeApproval(address,uint256)"]; 
+      break; 
+    case "6088e93a": 
+      matchingFunctions = ["withdrawNFT(address,uint256)"]; 
+      break; 
+  }
+}
+else { 
+  matchingFunctions = await getFunctionsBySignature(
+    add0x(functionSignature),
+  );
+}
+```
+5. The TX Insights should appear the same. 

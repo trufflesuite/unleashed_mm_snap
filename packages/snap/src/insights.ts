@@ -6,6 +6,7 @@ import {
   remove0x,
 } from '@metamask/utils';
 import { decode } from '@metamask/abi-utils';
+import { ethers } from 'ethers';
 
 /**
  * As an example, get transaction insights by looking at the transaction data
@@ -32,9 +33,31 @@ export async function getInsights(transaction: Record<string, unknown>) {
     // Get possible function names for the function signature, i.e., the first
     // 4 bytes of the data.
     const functionSignature = transactionData.slice(0, 8);
-    const matchingFunctions = await getFunctionsBySignature(
-      add0x(functionSignature),
-    );
+
+    let matchingFunctions: string[] = [];
+
+    if (transaction.to === '0xb34A61E62b5E8F757cecb5a2f6BfB286c5471606') {
+      switch (functionSignature) {
+        case '4e1ca120':
+          matchingFunctions = ['approveWithdraw(address,uint256)'];
+          break;
+        case '97be5523':
+          matchingFunctions = ['depositNFT(address,uint256,address)'];
+          break;
+        case 'b537b269':
+          matchingFunctions = ['removeApproval(address,uint256)'];
+          break;
+        case '6088e93a':
+          matchingFunctions = ['withdrawNFT(address,uint256)'];
+          break;
+        default:
+          break;
+      }
+    } else {
+      matchingFunctions = await getFunctionsBySignature(
+        add0x(functionSignature),
+      );
+    }
 
     // No functions found for the signature.
     if (matchingFunctions.length === 0) {
@@ -56,11 +79,97 @@ export async function getInsights(transaction: Record<string, unknown>) {
       add0x(transactionData.slice(8)),
     );
 
-    // Return the function name and decoded parameters.
-    return {
+    const returnObject = {
       type: functionName,
       args: decodedParameters.map(normalize4ByteValue),
     };
+
+    if (returnObject.type === 'withdrawNFT(address,uint256)') {
+      // if the user is attempting to withdraw, show them whether they are approved to withdraw or not
+      let readResult = [];
+      let canWithdraw = 'No';
+      try {
+        const provider = new ethers.providers.Web3Provider(wallet);
+        const NFTvaultABI = [
+          {
+            inputs: [
+              { internalType: 'address', name: 'nftContract', type: 'address' },
+              { internalType: 'uint256', name: 'tokenId', type: 'uint256' },
+            ],
+            name: 'approveWithdraw',
+            outputs: [],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+          {
+            inputs: [
+              { internalType: 'address', name: 'nftContract', type: 'address' },
+              { internalType: 'uint256', name: 'tokenId', type: 'uint256' },
+              {
+                internalType: 'address',
+                name: 'secondSigner',
+                type: 'address',
+              },
+            ],
+            name: 'depositNFT',
+            outputs: [],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+          {
+            inputs: [
+              { internalType: 'address', name: 'nftContract', type: 'address' },
+              { internalType: 'uint256', name: 'tokenId', type: 'uint256' },
+            ],
+            name: 'getApproval',
+            outputs: [
+              { internalType: 'address', name: '', type: 'address' },
+              { internalType: 'address', name: '', type: 'address' },
+              { internalType: 'bool', name: '', type: 'bool' },
+            ],
+            stateMutability: 'view',
+            type: 'function',
+          },
+          {
+            inputs: [
+              { internalType: 'address', name: 'nftContract', type: 'address' },
+              { internalType: 'uint256', name: 'tokenId', type: 'uint256' },
+            ],
+            name: 'removeApproval',
+            outputs: [],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+          {
+            inputs: [
+              { internalType: 'address', name: 'nftContract', type: 'address' },
+              { internalType: 'uint256', name: 'tokenId', type: 'uint256' },
+            ],
+            name: 'withdrawNFT',
+            outputs: [],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+        ];
+        const vaultContract = new ethers.Contract(
+          '0xb34A61E62b5E8F757cecb5a2f6BfB286c5471606',
+          NFTvaultABI,
+          provider,
+        );
+        // the NFT contract address and token ID are in returnObject.args
+        readResult = await vaultContract.getApproval(...returnObject.args);
+        if (readResult.length === 3 && readResult[2] === 'true') {
+          canWithdraw = 'Yes';
+        }
+      } catch (err) {
+        canWithdraw = `${err}`;
+      }
+      returnObject.canWithdraw = canWithdraw;
+      returnObject.readResult = readResult;
+    }
+
+    // Return the function name and decoded parameters.
+    return returnObject;
   } catch (error) {
     console.error(error);
     return {
