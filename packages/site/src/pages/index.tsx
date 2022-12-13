@@ -3,17 +3,15 @@ import styled from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
 import {
   connectSnap,
-  TransactionConstants,
   getSnap,
-  sendContractTransaction,
+  sendHello,
   shouldDisplayReconnectButton,
 } from '../utils';
 import {
   ConnectButton,
   InstallFlaskButton,
   ReconnectButton,
-  SetNetworkToGanacheButton,
-  SendContractTransactionButton,
+  SendHelloButton,
   Card,
 } from '../components';
 
@@ -118,47 +116,10 @@ const Index = () => {
       dispatch({ type: MetamaskActions.SetError, payload: e });
     }
   };
-/*
+
   const handleSendHelloClick = async () => {
     try {
       await sendHello();
-    } catch (e) {
-      console.error(e);
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    }
-  };
-*/
-
-  const handleSetNetworkToGanacheClick = async () => {
-    try {
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0x539' }],
-      });
-    } catch (e) {
-      console.error(e);
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    }
-  };
-
-  const handleSendGoodContractTransactionClick = async () => {
-    try {
-      await sendContractTransaction(
-        TransactionConstants.GoodAddress,
-        TransactionConstants.SetStorage,
-      );
-    } catch (e) {
-      console.error(e);
-      dispatch({ type: MetamaskActions.SetError, payload: e });
-    }
-  };
-
-  const handleSendBadContractTransactionClick = async () => {
-    try {
-      await sendContractTransaction(
-        TransactionConstants.BadAddress,
-        TransactionConstants.UpdateWithdrawalAccount,
-      );
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
@@ -168,7 +129,7 @@ const Index = () => {
   return (
     <Container>
       <Heading>
-        Welcome to <Span>ABI Decoder Snap</Span>
+        Welcome to <Span>template-snap</Span>
       </Heading>
       <Subtitle>
         Get started by editing <code>src/index.ts</code>
@@ -224,48 +185,22 @@ const Index = () => {
         )}
         <Card
           content={{
-            title: 'Connect to Ganache',
+            title: 'Send Hello message',
             description:
-              'Switch your network to your local Ganache instance for testing.',
+              'Display a custom message within a confirmation screen in MetaMask.',
             button: (
-              <SetNetworkToGanacheButton 
-                onClick={handleSetNetworkToGanacheClick}
-                disabled={false}
+              <SendHelloButton
+                onClick={handleSendHelloClick}
+                disabled={!state.installedSnap}
               />
             ),
           }}
-          disabled={false}
-          fullWidth={false}
-        />
-        <Card
-          content={{
-            title: 'Send Good Contract Transaction',
-            description:
-              'Create a good pending contract transaction in MetaMask.',
-            button: (
-              <SendContractTransactionButton
-                onClick={handleSendGoodContractTransactionClick}
-                disabled={false}
-              />
-            ),
-          }}
-          disabled={false}
-          fullWidth={false}
-        />
-        <Card
-          content={{
-            title: 'Send Bad Contract Transaction',
-            description:
-              'Create a bad pending contract transaction in MetaMask.',
-            button: (
-              <SendContractTransactionButton
-                onClick={handleSendBadContractTransactionClick}
-                disabled={false}
-              />
-            ),
-          }}
-          disabled={false}
-          fullWidth={false}
+          disabled={!state.installedSnap}
+          fullWidth={
+            state.isFlask &&
+            Boolean(state.installedSnap) &&
+            !shouldDisplayReconnectButton(state.installedSnap)
+          }
         />
         <Notice>
           <p>
