@@ -8,8 +8,6 @@ import {
 import { decode } from '@metamask/abi-utils';
 import { ethers } from 'ethers';
 
-
-
 /**
  * As an example, get transaction insights by looking at the transaction data
  * and attempting to decode it.
@@ -89,9 +87,8 @@ export async function getInsights(transaction: Record<string, unknown>) {
           try {
             
             const NFTvaultABI = [{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"address","name":"secondSigner","type":"address"}],"name":"depositNFT","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"withdrawNFT","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"approveWithdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"getApproval","outputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function","constant":true},{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"removeApproval","outputs":[],"stateMutability":"nonpayable","type":"function"}]; 
+/*
             const vaultContractInterface = new ethers.utils.Interface(NFTvaultABI);
-            // the NFT contract address and token ID are in returnObject.args
-            /*readResult = await vaultContract.getApproval(...returnObject.args);*/
 
             const tokenID = "1"; 
             const nftContractAddress = "0x363006B693F3abbd9F476605A555c26642A39ed9"; 
@@ -114,11 +111,26 @@ export async function getInsights(transaction: Record<string, unknown>) {
               returnObject.canWithdraw = 'Yes';
             }
             returnObject.readResult = JSON.stringify(readResult); 
+*/
+            const provider = new ethers.providers.Web3Provider(wallet); 
+            const vaultContract = new ethers.Contract(
+              '0x0C4D665424c61c32229FDeBe04d0793eA5DA6ede',
+              NFTvaultABI,
+              provider,
+            );
+
+            const ethersReadResult = await vaultContract.getApproval(...returnObject.args);
+            if (ethersReadResult.length === 3 && ethersReadResult[2] === 'true') {
+              returnObject.canWithdraw = 'Yes';
+            }
+            else { 
+              returnObject.canWithdraw = 'No, you need to get approval from ' + ethersReadResult[1]; 
+            }
+            returnObject.readResult = ethersReadResult; 
+
           } catch (err) {
             returnObject.canWithdraw = `${err}`;
           }
-          //returnObject.readResult = JSON.stringify(readResult);
-
         }
     }
 
