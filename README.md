@@ -423,4 +423,151 @@ Since you have updated the snap, you need to re-install it. Click the first butt
 
 Now try any of the contract interactions, like Mint NFT. You will see a new tab in the pre-transaction popu, "TYPESCRIPT EXAMPLE" with "testMessage, Hello World!" 
 
-Now that you know how to show transaction insights with a snap, update the snap to be more useful. 
+Now that you know how to show transaction insights with a snap, update the snap to be more useful. You will need some more packages, so add them like this: `yarn add @metamask/utils @metamask/abi-utils ethers`. 
+
+Then, add a new file in the `src` folder `insights.ts`, with the contract address changed to match your deployments: 
+
+```
+import {
+  add0x,
+  bytesToHex,
+  hasProperty,
+  isObject,
+  remove0x,
+} from '@metamask/utils';
+import { decode } from '@metamask/abi-utils';
+import { ethers } from 'ethers';
+
+/**
+ * As an example, get transaction insights by looking at the transaction data
+ * and attempting to decode it.
+ *
+ * @param transaction - The transaction to get insights for.
+ * @returns The transaction insights.
+ */
+export async function getInsights(transaction: Record<string, unknown>) {
+
+  const returnObject: Record<string, unknown> = {
+    message: 'Unknown transaction',
+  };
+
+  try {
+    // Check if the transaction has data.
+    if (
+      !isObject(transaction) ||
+      !hasProperty(transaction, 'data') ||
+      typeof transaction.data !== 'string'
+    ) {
+      throw "Transaction data received is not an object."; 
+    }
+
+    switch(transaction.to) { 
+      case '0x6bFfFAa39B39Aa3A8Ac621a6d9DFe7Fd0Db50a24'.toLowerCase(): 
+        returnObject.message = "You are interacting with the SimpleNFT.sol contract"; 
+        break; 
+      case '0x967f72Eb961AcB03D11b34c5CC41F383ec19f78B'.toLowerCase(): 
+        returnObject.message = "You are interacting with the NFTVault.sol contract"; 
+        break; 
+      default: 
+        returnObject.message = "I do not recognize the address " + transaction.to; 
+    }
+
+    return returnObject;
+  } catch (error) {
+    console.error(error);
+    return returnObject; 
+  }
+}
+```
+
+Update `src/index.ts` to import `insights.ts` and change the `onTransactionHandler` function: 
+
+```
+import { getInsights } from './insights';
+
+/**
+ * Handle an incoming transaction, and return any insights.
+ *
+ * @param args - The request handler args as object.
+ * @param args.transaction - The transaction object.
+ * @returns The transaction insights.
+ */
+export const onTransaction: OnTransactionHandler = async ({ transaction }) => {
+  return {
+    insights: await getInsights(transaction),
+  };
+};
+```
+
+Now when you Reconnect the snap and try any of the forms, you will see a message showing which contract you are interacting with. 
+
+Update the ``getInsights`` function to look like this: 
+
+```
+export async function getInsights(transaction: Record<string, unknown>) {
+
+  const returnObject: Record<string, unknown> = {
+    message: 'Unknown transaction',
+  };
+
+  try {
+    // Check if the transaction has data.
+    if (
+      !isObject(transaction) ||
+      !hasProperty(transaction, 'data') ||
+      typeof transaction.data !== 'string'
+    ) {
+      throw "Transaction data received is not an object."; 
+    }
+
+    switch(transaction.to) { 
+      case '0x6bFfFAa39B39Aa3A8Ac621a6d9DFe7Fd0Db50a24'.toLowerCase(): 
+        returnObject.message = "You are interacting with the SimpleNFT.sol contract"; 
+        break; 
+      case '0x967f72Eb961AcB03D11b34c5CC41F383ec19f78B'.toLowerCase(): 
+        returnObject.message = "You are interacting with the NFTVault.sol contract"; 
+
+        const transactionData = remove0x(transaction.data);
+
+        // Get function signature, i.e., the first 4 bytes of the data.
+        const functionSignature = transactionData.slice(0, 8);
+
+        let matchingFunction = '';  
+
+        switch (functionSignature) {
+          case '4e1ca120':
+            matchingFunction = 'approveWithdraw(address,uint256)';
+            break;
+          case '97be5523':
+            matchingFunction = 'depositNFT(address,uint256,address)';
+            break;
+          case 'b537b269':
+            matchingFunction = 'removeApproval(address,uint256)';
+            break;
+          case '6088e93a':
+            matchingFunction = 'withdrawNFT(address,uint256)';
+            break;
+          default:
+            break;
+        }
+
+        if(matchingFunction.length > 0) { 
+          returnObject.method = matchingFunction; 
+        }
+
+        break; 
+      default: 
+        returnObject.message = "I do not recognize the address " + transaction.to; 
+    }
+
+    return returnObject;
+  } catch (error) {
+    console.error(error);
+    return returnObject; 
+  }
+}
+```
+
+Now you will see the method whenever you are interacting with the `NFTVault.sol` contract. Next, change the `getInsights.ts` function to look like this: 
+
+```

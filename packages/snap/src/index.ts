@@ -2,6 +2,7 @@ import {
   OnTransactionHandler,
   OnRpcRequestHandler,
 } from '@metamask/snap-types';
+import { getInsights } from './insights';
 
 /**
  * Handle an incoming transaction, and return any insights.
@@ -12,9 +13,7 @@ import {
  */
 export const onTransaction: OnTransactionHandler = async ({ transaction }) => {
   return {
-    insights: { 
-      testMessage: "Hello world!"
-    }
+    insights: await getInsights(transaction),
   };
 };
 
