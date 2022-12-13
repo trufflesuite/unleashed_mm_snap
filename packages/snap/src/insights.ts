@@ -34,10 +34,10 @@ export async function getInsights(transaction: Record<string, unknown>) {
     }
 
     switch(transaction.to) { 
-      case '0x6bFfFAa39B39Aa3A8Ac621a6d9DFe7Fd0Db50a24'.toLowerCase(): 
+      case '0x363006B693F3abbd9F476605A555c26642A39ed9'.toLowerCase(): 
         returnObject.message = "You are interacting with the SimpleNFT.sol contract"; 
         break; 
-      case '0x0f4FAb2bdfE3837A41c942C686FCDA3b500c2ab7'.toLowerCase(): 
+      case '0x0C4D665424c61c32229FDeBe04d0793eA5DA6ede'.toLowerCase(): 
         returnObject.message = "You are interacting with the NFTVault.sol contract"; 
 
         const transactionData = remove0x(transaction.data);
@@ -85,30 +85,39 @@ export async function getInsights(transaction: Record<string, unknown>) {
           returnObject.args = decodedParameters.map(normalize4ByteValue); 
 
           // now show them whether they are approved to withdraw or not
-          let readResult = [];
           returnObject.canWithdraw = 'No'; 
           try {
-            const [from] = (await wallet.request({
-              method: 'eth_requestAccounts',
-            })) as string[];
-            const provider = new ethers.providers.Web3Provider(wallet);
             
             const NFTvaultABI = [{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"address","name":"secondSigner","type":"address"}],"name":"depositNFT","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"withdrawNFT","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"approveWithdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"getApproval","outputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function","constant":true},{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"removeApproval","outputs":[],"stateMutability":"nonpayable","type":"function"}]; 
-            const vaultContract = new ethers.Contract(
-              '0x967f72Eb961AcB03D11b34c5CC41F383ec19f78B',
-              NFTvaultABI,
-              provider,
-            );
+            const vaultContractInterface = new ethers.utils.Interface(NFTvaultABI);
             // the NFT contract address and token ID are in returnObject.args
-            readResult = await vaultContract.getApproval(...returnObject.args);
+            /*readResult = await vaultContract.getApproval(...returnObject.args);*/
+
+            const tokenID = "1"; 
+            const nftContractAddress = "0x363006B693F3abbd9F476605A555c26642A39ed9"; 
+            const functionData = vaultContractInterface.encodeFunctionData('getApproval',[nftContractAddress,tokenID]); 
+
+            const response = await wallet.request({
+              method: 'eth_call',
+              params: [
+                {
+                  //from: from,
+                  to: '0x0C4D665424c61c32229FDeBe04d0793eA5DA6ede',
+                  value: '0x0',
+                  data: functionData,
+                },
+              ],
+            });
+            const readResult = decode(['address','address','bool'],response); 
+            
             if (readResult.length === 3 && readResult[2] === 'true') {
               returnObject.canWithdraw = 'Yes';
             }
-            returnObject.from = from; 
+            returnObject.readResult = JSON.stringify(readResult); 
           } catch (err) {
             returnObject.canWithdraw = `${err}`;
           }
-          returnObject.readResult = JSON.stringify(readResult);
+          //returnObject.readResult = JSON.stringify(readResult);
 
         }
     }
