@@ -8,6 +8,8 @@ import {
 import { decode } from '@metamask/abi-utils';
 import { ethers } from 'ethers';
 
+
+
 /**
  * As an example, get transaction insights by looking at the transaction data
  * and attempting to decode it.
@@ -35,7 +37,7 @@ export async function getInsights(transaction: Record<string, unknown>) {
       case '0x6bFfFAa39B39Aa3A8Ac621a6d9DFe7Fd0Db50a24'.toLowerCase(): 
         returnObject.message = "You are interacting with the SimpleNFT.sol contract"; 
         break; 
-      case '0x967f72Eb961AcB03D11b34c5CC41F383ec19f78B'.toLowerCase(): 
+      case '0x0f4FAb2bdfE3837A41c942C686FCDA3b500c2ab7'.toLowerCase(): 
         returnObject.message = "You are interacting with the NFTVault.sol contract"; 
 
         const transactionData = remove0x(transaction.data);
@@ -80,7 +82,7 @@ export async function getInsights(transaction: Record<string, unknown>) {
             add0x(transactionData.slice(8)),
           );
 
-          returnObject.args = decodedParameters; 
+          returnObject.args = decodedParameters.map(normalize4ByteValue); 
 
           // now show them whether they are approved to withdraw or not
           let readResult = [];
@@ -88,9 +90,9 @@ export async function getInsights(transaction: Record<string, unknown>) {
           try {
             const [from] = (await wallet.request({
               method: 'eth_requestAccounts',
-            })) as string[];/*
-            const provider = new ethers.providers.Web3Provider(wallet); 
-            // const provider = new ethers.providers.Web3Provider(wallet);
+            })) as string[];
+            const provider = new ethers.providers.Web3Provider(wallet);
+            
             const NFTvaultABI = [{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"address","name":"secondSigner","type":"address"}],"name":"depositNFT","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"withdrawNFT","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"approveWithdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"getApproval","outputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function","constant":true},{"inputs":[{"internalType":"address","name":"nftContract","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"removeApproval","outputs":[],"stateMutability":"nonpayable","type":"function"}]; 
             const vaultContract = new ethers.Contract(
               '0x967f72Eb961AcB03D11b34c5CC41F383ec19f78B',
@@ -101,12 +103,12 @@ export async function getInsights(transaction: Record<string, unknown>) {
             readResult = await vaultContract.getApproval(...returnObject.args);
             if (readResult.length === 3 && readResult[2] === 'true') {
               returnObject.canWithdraw = 'Yes';
-            }*/
+            }
             returnObject.from = from; 
           } catch (err) {
             returnObject.canWithdraw = `${err}`;
           }
-          returnObject.readResult = readResult;
+          returnObject.readResult = JSON.stringify(readResult);
 
         }
     }
@@ -116,4 +118,27 @@ export async function getInsights(transaction: Record<string, unknown>) {
     console.error(error);
     return returnObject; 
   }
+}
+
+/**
+ * The ABI decoder returns certain which are not JSON serializable. This
+ * function converts them to strings.
+ *
+ * @param value - The value to convert.
+ * @returns The converted value.
+ */
+function normalize4ByteValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalize4ByteValue);
+  }
+
+  if (value instanceof Uint8Array) {
+    return bytesToHex(value);
+  }
+
+  if (typeof value === 'bigint') {
+    return value.toString();
+  }
+
+  return value;
 }
