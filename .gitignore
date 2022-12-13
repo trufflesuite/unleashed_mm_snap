@@ -37,7 +37,7 @@ build/Release
 
 # Dependency directories
 node_modules/
-packages/truffle/node_modules
+packages/site/src/contracts
 
 # TypeScript cache
 *.tsbuildinfo
