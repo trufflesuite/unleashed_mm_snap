@@ -126,3 +126,247 @@ Now you are ready to build the NFT Vault dapp to use the `NFTVault.sol` contract
         console.error(e);
       }
     }; 
+* Now you should be able to mint an NFT from the page. Try minting with this `tokenURI`: `https://www.rd.com/wp-content/uploads/2020/12/GettyImages-78777891-scaled.jpg`. 
+* Next, you need to be able to approve the NFT Vault to transfer your NFT on your behalf. Add the following card: 
+```
+{NFTVaultContractAddress && (
+  <Card
+    content={{
+      title: 'Approve the NFT Vault to hold your NFT',
+      description: (
+        <form id="approveVault" onSubmit={approveVaultHandler}>
+          <p><label>NFT Contract Address:</label></p>
+          <p><input type="text" name="contractAddressToApprove" id="contractAddressToApprove" /></p>
+          <p><label>NFT token ID:</label></p>
+          <p><input type="text" name="tokenIdToApprove" id="tokenIdToApprove" /></p>
+          <button type="submit">Approve</button>
+        </form>
+      ), 
+    }}
+    disabled={false}
+    fullWidth={false}
+  />
+)}
+```
+And the following function: 
+```
+const approveVaultHandler = async (e:Event) => {
+  e.preventDefault();
+  const data = new FormData(e.target);  
+  const address = ""+data.get("contractAddressToApprove"); 
+  const tokenId = parseInt(data.get("tokenIdToApprove")); 
+  const functionData = simpleNFTInterface.encodeFunctionData('approve',[NFTVaultContractAddress,tokenId]); 
+  try { 
+    const [from] = (await window.ethereum.request({
+      method: 'eth_requestAccounts',
+    })) as string[];
+    // Send a transaction to MetaMask.
+    await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [
+        {
+          from: from,
+          to: address,
+          value: '0x0',
+          data: functionData,
+        },
+      ],
+    });
+  } catch (e) {
+    console.error(e);
+  }
+}; 
+```
+This may look a bit confusing, but note this is a call to the *NFT contract* to approve the NFT Vault to transfer the token ID. This is a standard method that any NFT contract should have (unless transfers are disabled). Now you should be able to approve the NFT to deposit with the address for the `SimpleNFT.sol` contract and the token ID: 1. 
+* Next, add the forms and functions you will need to use the `NFTVault.sol` contract, but before you do that, add the NFTVault.sol ABI from the packages/truffle/build folder and create the Contract Interface for ethers to use: 
+```
+const NFTVaultABI = [{"inputs":[{"internalType":"address",...
+const NFTVaultInterface = new ethers.utils.Interface(NFTVaultABI); 
+```
+Now, on to the contract functions: 
+    * First add a method to deposit your NFT, but before you do that you need a second address to act as the approver. When you deposit the NFT, you specify this second address as someone authorized to approve the withdrawal; without that approval, the NFT will remain safely "vaulted" and no one can steal it, even if they get access to your account. Normally you would use the address of a real person you know, but since you are testing locally, the easiest way to do this is to add another account in MetaMask Flask. Open the account menu in MetaMask Flask and click "+ Create Account." For the account name, you can put "Approver." Then, copy this address from MetaMask Flask. 
+    * For the deposit form, here's the card: 
+    ```
+    {NFTVaultContractAddress && (
+      <Card
+        content={{
+          title: 'Deposit an NFT into the vault',
+          description: (
+            <form id="depositToVault" onSubmit={depositToVaultHandler}>
+              <p><em>Make sure you have approved the vault to hold this NFT!</em></p>
+              <p><label>NFT Contract Address:</label></p>
+              <p><input type="text" name="nftAddressToDeposit" id="nftAddressToDeposit" /></p>
+              <p><label>NFT token ID:</label></p>
+              <p><input type="text" name="nftTokenIdToDeposit" id="nftTokenIdToDeposit" /></p>
+              <p><label>Second signer for withdraw approval:</label></p>
+              <p><input type="text" name="secondSigner" id="secondSigner" /></p>
+              <button type="submit">Deposit</button>
+            </form>
+          ), 
+        }}
+        disabled={false}
+        fullWidth={false}
+      />
+    )}
+    ```
+    And here's the function: 
+    ```
+    const depositToVaultHandler = async (e:Event) => {
+      e.preventDefault();
+      const data = new FormData(e.target);  
+      const nftAddress = ""+data.get("nftAddressToDeposit"); 
+      const tokenId = parseInt(data.get("nftTokenIdToDeposit")); 
+      const secondSigner = ""+data.get("secondSigner"); 
+      const functionData = NFTVaultInterface.encodeFunctionData('depositNFT',[nftAddress, tokenId, secondSigner]); 
+      try { 
+        const [from] = (await window.ethereum.request({
+          method: 'eth_requestAccounts',
+        })) as string[];
+        // Send a transaction to MetaMask.
+        await window.ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [
+            {
+              from: from,
+              to: NFTVaultContractAddress,
+              value: '0x0',
+              data: functionData,
+            },
+          ],
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }; 
+    ```
+    Now you can deposit the NFT! Paste the address of the second account you created in MetaMask Flask into this form, then switch back to the first account before doing the deposit. Put the same NFT contract address and token ID that you just approved in the previous step, then click "Deposit."
+    * Next add the code to approve and withdraw an NFT. Add these cards: 
+    ```
+    {NFTVaultContractAddress && (
+      <Card
+        content={{
+          title: 'Approve an NFT to be withdrawn',
+          description: (
+            <form id="approveWithdraw" onSubmit={approveWithdrawHandler}>
+              <p><em>Make sure you are calling this from the second signer!</em></p>
+              <p><label>NFT Contract Address:</label></p>
+              <p><input type="text" name="nftAddressToApprove" id="nftAddressToApprove" /></p>
+              <p><label>NFT token ID:</label></p>
+              <p><input type="text" name="nftTokenIdToApprove" id="nftTokenIdToApprove" /></p>
+              <button type="submit">Approve Withdrawal</button>
+            </form>
+          ), 
+        }}
+        disabled={false}
+        fullWidth={false}
+      />
+    )}
+    {NFTVaultContractAddress && (
+      <Card
+        content={{
+          title: 'Withdraw NFT',
+          description: (
+            <form id="withdraw" onSubmit={withdrawHandler}>
+              <p><em>Make sure the second signer has already approved this!</em></p>
+              <p><label>NFT Contract Address:</label></p>
+              <p><input type="text" name="nftAddressToWithdraw" id="nftAddressToWithdraw" /></p>
+              <p><label>NFT token ID:</label></p>
+              <p><input type="text" name="nftTokenIdToWithdraw" id="nftTokenIdToWithdraw" /></p>
+              <button type="submit">Withdraw</button>
+            </form>
+          ), 
+        }}
+        disabled={false}
+        fullWidth={false}
+      />
+    )}
+    ```
+    And these functions: 
+    ```
+    const approveWithdrawHandler = async (e:Event) => {
+      e.preventDefault();
+      const data = new FormData(e.target);  
+      const nftAddress = ""+data.get("nftAddressToApprove"); 
+      const tokenId = parseInt(data.get("nftTokenIdToApprove")); 
+      const functionData = NFTVaultInterface.encodeFunctionData('approveWithdraw',[nftAddress, tokenId]); 
+      try { 
+        const [from] = (await window.ethereum.request({
+          method: 'eth_requestAccounts',
+        })) as string[];
+        // Send a transaction to MetaMask.
+        await window.ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [
+            {
+              from: from,
+              to: NFTVaultContractAddress,
+              value: '0x0',
+              data: functionData,
+            },
+          ],
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }; 
+    
+    const withdrawHandler = async (e:Event) => {
+      e.preventDefault();
+      const data = new FormData(e.target);  
+      const nftAddress = ""+data.get("nftAddressToWithdraw"); 
+      const tokenId = parseInt(data.get("nftTokenIdToWithdraw")); 
+      const functionData = NFTVaultInterface.encodeFunctionData('withdrawNFT',[nftAddress, tokenId]); 
+      try { 
+        const [from] = (await window.ethereum.request({
+          method: 'eth_requestAccounts',
+        })) as string[];
+        // Send a transaction to MetaMask.
+        await window.ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [
+            {
+              from: from,
+              to: NFTVaultContractAddress,
+              value: '0x0',
+              data: functionData,
+            },
+          ],
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }; 
+    ```
+    Now you can swith to the second account, approve the NFT for withdrawal, switch back to the first account, and withdraw it! To confirm that this works, you can try withdrawing an NFT that you didn't already approve -- you will see that it fails.
+
+Now the dapp is fully functioning. Next, build a snap that can decode these transactions and use the same smart NFT Vault contract to provide some meaningful information. In this case, it will tell the user whether the NFT they want to withdraw is approved for withdrawal. 
+
+* Navigate to the snap package folder: `../snap`
+* We are going to build a transaction insights snap, so open the `snap.manifest.json` file and add the permission for transaction insights: `"endowment:transaction-insight": {}`
+* In `src/index.ts`, update the first import to look like this: 
+```
+import {
+  OnTransactionHandler,
+  OnRpcRequestHandler,
+} from '@metamask/snap-types';
+```
+And add the following function: 
+```
+/**
+ * Handle an incoming transaction, and return any insights.
+ *
+ * @param args - The request handler args as object.
+ * @param args.transaction - The transaction object.
+ * @returns The transaction insights.
+ */
+export const onTransaction: OnTransactionHandler = async ({ transaction }) => {
+  return {
+    insights: { 
+      testMessage: "Hello world!"
+    }
+  };
+};
+```
+* Since you have updated the snap, you need to re-install it. Click the first button in the dapp "Reconnect." The installation popup will have a new permission: "Fetch and display transaction insights." Approve and install. 
+* Now try any of the contract interactions, like Mint NFT. You will see a new tab in the pre-transaction popu, "TYPESCRIPT EXAMPLE" with "testMessage, Hello World!" 
+* Now that you know how to show transaction insights with a snap, update the snap to be more useful. 
