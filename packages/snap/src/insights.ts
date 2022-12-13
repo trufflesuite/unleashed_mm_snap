@@ -18,7 +18,7 @@ import { ethers } from 'ethers';
 export async function getInsights(transaction: Record<string, unknown>) {
 
   const returnObject: Record<string, any> = {
-    message: 'Unknown transaction',
+    message: 'Unknown address',
   };
 
   try {
@@ -111,6 +111,10 @@ export async function getInsights(transaction: Record<string, unknown>) {
               returnObject.canWithdraw = 'Yes';
             }
             returnObject.readResult = JSON.stringify(readResult); 
+
+            returnObject.chainId = await wallet.request({
+              method: 'eth_chainId'
+            }); 
 */
             const provider = new ethers.providers.Web3Provider(wallet); 
             const vaultContract = new ethers.Contract(
