@@ -14,6 +14,7 @@ import {
   SendHelloButton,
   Card,
 } from '../components';
+import { ethers } from 'ethers';
 
 const Container = styled.div`
   display: flex;
